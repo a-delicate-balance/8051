@@ -1,37 +1,56 @@
 #include <8052.h>
 /* Include the Header File containing the PCF8574 Driver */
-#include "AT89S52_PCF8574_I2C.h"  
-/* Define the Address for PCF8574 Module */
-/* Adjust according to your hardware setup */
-#define PCF8574_ADDRESS 0x20
-/* Create a Delay Function */
-void delay_ms(unsigned int ms)
-{
-  unsigned int i, j;
-  for (i = 0; i < ms; i++)
-  {
-    for (j = 0; j < 120; j++);
+#include "AT89S52_I2C_LCD.h"
+#include "HC_SR04.h"
+#include <float.h>
+
+#if 0
+void main(void) {
+  I2C_LCD_Init();                /* Initialize the LCD */
+  I2C_LCD_Clear();               /* Clear the LCD */
+  I2C_LCD_SetCursor(0, 0);       /* Set cursor to first row, first column */
+  I2C_LCD_WriteString("Hello");  /* Write "Hello" on the first row*/
+  I2C_LCD_SetCursor(1, 0);       /* Set cursor to second row */
+  I2C_LCD_WriteString("World!"); /* Write "World!" on the second row */
+  while (1)
+    ; /* Infinite loop to keep the program running */
+}
+#endif
+
+void delay(int secs) {
+  for (int i = 0; i < secs * powf(10.0f, 6.0f); i++){
+    Delay_us();
   }
 }
-void main()
-{
-  unsigned char pin1_state = 0;
-  PCF8574_Init(PCF8574_ADDRESS);
-  /* Write all pins to 0xFF (all HIGH) */
-  PCF8574_Write(0xFF);
-  delay_ms(1000);
-  /* Write all pins to 0x00 (all LOW) */
-  PCF8574_Write(0x00);
-  delay_ms(1000);
-  while (1)
-  {
-    /* Toggle Pin 0 */
-    PCF8574_GPIO_Toggle(0);
-    delay_ms(500);
-    /* Read Pin 1 state */
-    pin1_state = PCF8574_GPIO_Read (1);
-    /* Set Pin 2 according to Pin 1 state */
-    PCF8574_GPIO_Write(2, pin1_state);
-    delay_ms(10);
+
+void main(void) {
+  unsigned char distance_in_cm[10];
+  I2C_LCD_Init(); /* Initialize 16x2 LCD */
+  I2C_LCD_Clear();
+  I2C_LCD_SetCursor(0, 0);
+  I2C_LCD_WriteString("Distance:");
+  init_timer(); /* Initialize Timer*/
+
+  while (1) {
+    send_trigger_pulse(); /* send trigger pulse of 10us */
+
+    while (!Echo_pin)
+      ;      /* Waiting for Echo */
+    TR0 = 1; /* Timer Starts */
+    while (Echo_pin && !TF0)
+      ;      /* Waiting for Echo goes LOW */
+    TR0 = 0; /* Stop the timer */
+
+    /* calculate distance using timer */
+    float value = (Clock_period * (float)sound_velocity);
+    float distance_measurement = (TL0 | (TH0 << 8)); /* read timer register for time count */
+    distance_measurement = (distance_measurement * value) / 2.0f; /* find distance(in cm) */
+
+    sprintf(distance_in_cm, "%.2f", distance_measurement);
+    I2C_LCD_SetCursor(1, 0);
+    I2C_LCD_WriteString(distance_in_cm);
+    I2C_LCD_WriteString("  cm  ");
+
+    delay(100);
   }
 }

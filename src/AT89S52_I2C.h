@@ -8,8 +8,8 @@
 typedef __bit Bool;
 
 /* Define two GPIO Pins, one for SDA and one for SCL */
-__sbit __at (0xA6) SDA; /* Define SDA Pin */
-__sbit __at (0xA7) SCL; /* Define SDL Pin */
+__sbit __at (0xA7) SDA; /* Define SDA Pin */
+__sbit __at (0xA6) SCL; /* Define SDL Pin */
 
 /* I2C Function Prototypes */
 __bit I2C_Start(void);
